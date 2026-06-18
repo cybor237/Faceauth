@@ -1,0 +1,18 @@
+cat > .gitignore << 'EOF'
+# Python
+backend/venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/**/*.pyc
+backend/.env
+
+# SDK et Dashboard (ajoutés plus tard)
+sdk/node_modules/
+dashboard/node_modules/
+sdk/dist/
+dashboard/dist/
+
+# OS
+.DS_Store
+Thumbs.db
+EOF
