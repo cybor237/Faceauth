@@ -167,8 +167,8 @@ export class GestureEngine {
 
     // Note : le yaw est positif quand la tête tourne vers la droite de l'utilisateur
     // (donc vers la gauche de l'écran, effet miroir webcam)
-    this.evaluateGesture("head_left", yawDeg < -HEAD_YAW_THRESHOLD_DEG);
-    this.evaluateGesture("head_right", yawDeg > HEAD_YAW_THRESHOLD_DEG);
+    this.evaluateGesture("head_left", yawDeg > HEAD_YAW_THRESHOLD_DEG);
+    this.evaluateGesture("head_right", yawDeg < -HEAD_YAW_THRESHOLD_DEG);
   }
 
   /** Extrait l'angle de lacet (yaw) en degrés depuis une matrice de transformation 4x4. */

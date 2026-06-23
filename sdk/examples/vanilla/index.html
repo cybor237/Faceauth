@@ -89,44 +89,61 @@
 
   <pre id="result"></pre>
 
-  <!-- Le SDK doit être construit au préalable : npm run build -->
   <script src="../../dist/faceauth.js"></script>
-  <script>
-    const resultEl = document.getElementById("result");
+<script>
+  const resultEl = document.getElementById("result");
 
-    function showResult(result) {
-      resultEl.classList.add("show");
-      resultEl.textContent = JSON.stringify(result, null, 2);
+  function showResult(result) {
+    resultEl.classList.add("show");
+    resultEl.textContent = JSON.stringify(result, null, 2);
+  }
+
+  function showRawError(err) {
+    resultEl.classList.add("show");
+    resultEl.style.color = "#dc2626";
+    resultEl.textContent = "ERREUR JS : " + (err?.message || err);
+  }
+
+  function getClient() {
+    const apiKey = document.getElementById("apiKey").value.trim();
+    if (!apiKey) {
+      showRawError("Champ clé API vide — collez votre clé sk_live_... avant de cliquer");
+      return null;
     }
-
-    function getClient() {
-      const apiKey = document.getElementById("apiKey").value.trim();
-      if (!apiKey) {
-        alert("Entrez une clé API d'abord");
-        return null;
-      }
-      return new FaceAuth.FaceAuth({
-        apiKey,
-        apiBaseUrl: "http://localhost:8000",
-        theme: "auto",
-      });
+    if (typeof FaceAuth === "undefined") {
+      showRawError("Le SDK ne s'est pas chargé (faceauth.js introuvable ou erreur de build)");
+      return null;
     }
+    return new FaceAuth.FaceAuth({
+      apiKey,
+      apiBaseUrl: "",
+      theme: "auto",
+    });
+  }
 
-    document.getElementById("btnEnroll").addEventListener("click", async () => {
+  document.getElementById("btnEnroll").addEventListener("click", async () => {
+    try {
       const client = getClient();
       if (!client) return;
       const endUserId = document.getElementById("endUserId").value.trim();
       const result = await client.enroll({ endUserId });
       showResult(result);
-    });
+    } catch (err) {
+      showRawError(err);
+    }
+  });
 
-    document.getElementById("btnVerify").addEventListener("click", async () => {
+  document.getElementById("btnVerify").addEventListener("click", async () => {
+    try {
       const client = getClient();
       if (!client) return;
       const endUserId = document.getElementById("endUserId").value.trim();
       const result = await client.verify({ endUserId });
       showResult(result);
-    });
-  </script>
+    } catch (err) {
+      showRawError(err);
+    }
+  });
+</script>
 </body>
 </html>

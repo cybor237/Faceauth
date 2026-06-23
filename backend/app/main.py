@@ -14,6 +14,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
+import os
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
@@ -94,6 +96,13 @@ app.add_middleware(
     allow_headers=["Authorization", "Content-Type"],
 )
 
+# -------------------------------------------------------------------
+# Démo SDK — sert la page de test directement (évite CORS en dev)
+# -------------------------------------------------------------------
+DEMO_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "sdk", "examples", "vanilla")
+if os.path.isdir(DEMO_DIR):
+    app.mount("/demo", StaticFiles(directory=DEMO_DIR, html=True), name="demo")
+    logger.info(f"📂  Démo SDK montée sur /demo (dossier : {DEMO_DIR})")
 
 # -------------------------------------------------------------------
 # Gestion globale des erreurs

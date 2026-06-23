@@ -96,17 +96,19 @@ export class CameraView {
     canvas.height = 224;
     const ctx = canvas.getContext("2d")!;
 
-    // Note : pas de flip miroir ici — on envoie l'image "brute" caméra au serveur
+    // Capturer sans le flip miroir CSS (DeepFace veut l'image naturelle)
+    ctx.save();
     ctx.drawImage(this.videoElement, 0, 0, 224, 224);
+    ctx.restore();
 
     return new Promise((resolve, reject) => {
       canvas.toBlob(
         (blob) => (blob ? resolve(blob) : reject(new Error("Échec de capture d'image"))),
         "image/jpeg",
-        0.92
+        0.95  // Qualité augmentée de 0.92 → 0.95
       );
     });
-  }
+}
 
   private buildGhostOverlay(): HTMLDivElement {
     const wrapper = document.createElement("div");

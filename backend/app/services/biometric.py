@@ -79,7 +79,7 @@ class BiometricService:
             result = DeepFace.represent(
                 img_path=img_array,
                 model_name=settings.DEEPFACE_MODEL,
-                enforce_detection=True,
+                enforce_detection=False,
                 detector_backend="opencv",
             )
 
