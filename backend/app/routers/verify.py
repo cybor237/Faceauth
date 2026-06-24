@@ -163,10 +163,10 @@ async def verify(
 
         return VerifyResponse(
             end_user_id=end_user_id,
-            match=match,
-            confidence=round(similarity, 4),
-            threshold=settings.SIMILARITY_THRESHOLD,
-            credits_remaining=credits_after,
+            match=bool(match),
+            confidence=float(round(similarity, 4)),
+            threshold=float(settings.SIMILARITY_THRESHOLD),
+            credits_remaining=int(credits_after),
             message="Identité vérifiée avec succès" if match else "Correspondance biométrique insuffisante",
         )
 

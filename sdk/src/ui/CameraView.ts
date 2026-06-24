@@ -1,16 +1,16 @@
 /**
- * CameraView — gère le flux vidéo de la caméra, le silhouette guide
- * ("Ghost Overlay"), et les 4 bordures progressives correspondant
- * aux 4 gestes de liveness.
+ * CameraView — gère le flux vidéo de la caméra et l'anneau de
+ * progression circulaire pour les gestes de vivacité.
  */
 
 import type { GestureType } from "../types";
 
-const BORDER_FOR_GESTURE: Record<GestureType, "top" | "right" | "bottom" | "left"> = {
-  blink: "top",
-  mouth: "right",
-  head_left: "bottom",
-  head_right: "left",
+// L'ordre des segments dans le SVG
+const SEGMENT_FOR_GESTURE: Record<GestureType, string> = {
+  blink: "fa-segment-1",
+  mouth: "fa-segment-2",
+  head_left: "fa-segment-3",
+  head_right: "fa-segment-4",
 };
 
 export class CameraView {
@@ -18,7 +18,7 @@ export class CameraView {
   readonly videoElement: HTMLVideoElement;
 
   private stream: MediaStream | null = null;
-  private borders: Record<"top" | "right" | "bottom" | "left", HTMLDivElement>;
+  private progressSegments: Record<string, SVGPathElement>;
 
   constructor() {
     this.element = document.createElement("div");
@@ -30,23 +30,10 @@ export class CameraView {
     this.videoElement.playsInline = true;
     this.videoElement.muted = true;
 
-    const ghostOverlay = this.buildGhostOverlay();
+    const { progressRing, segments } = this.buildProgressRing();
+    this.progressSegments = segments;
 
-    this.borders = {
-      top: this.buildBorder("top"),
-      right: this.buildBorder("right"),
-      bottom: this.buildBorder("bottom"),
-      left: this.buildBorder("left"),
-    };
-
-    this.element.append(
-      this.videoElement,
-      ghostOverlay,
-      this.borders.top,
-      this.borders.right,
-      this.borders.bottom,
-      this.borders.left
-    );
+    this.element.append(this.videoElement, progressRing);
   }
 
   /** Demande l'accès caméra et démarre le flux vidéo. */
@@ -77,13 +64,13 @@ export class CameraView {
 
   /** Active la bordure correspondant au geste complété. */
   markGestureComplete(gesture: GestureType): void {
-    const side = BORDER_FOR_GESTURE[gesture];
-    this.borders[side].classList.add("fa-active");
+    const segmentId = SEGMENT_FOR_GESTURE[gesture];
+    this.progressSegments[segmentId]?.classList.add("fa-active");
   }
 
   /** Réinitialise toutes les bordures (nouvelle session). */
   resetBorders(): void {
-    Object.values(this.borders).forEach((b) => b.classList.remove("fa-active"));
+    Object.values(this.progressSegments).forEach((s) => s.classList.remove("fa-active"));
   }
 
   /**
@@ -110,21 +97,30 @@ export class CameraView {
     });
 }
 
-  private buildGhostOverlay(): HTMLDivElement {
+  private buildProgressRing(): { progressRing: HTMLDivElement; segments: Record<string, SVGPathElement> } {
     const wrapper = document.createElement("div");
-    wrapper.className = "fa-ghost-overlay";
+    wrapper.className = "fa-progress-ring";
+
+    // SVG avec 4 arcs pour les 4 gestes
     wrapper.innerHTML = `
-      <svg class="fa-ghost-svg" viewBox="0 0 200 260" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <ellipse cx="100" cy="100" rx="70" ry="90" stroke="white" stroke-width="3" stroke-dasharray="8 8"/>
-        <path d="M40 200 Q100 240 160 200" stroke="white" stroke-width="3" stroke-dasharray="8 8" fill="none"/>
+      <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="50" cy="50" r="46" stroke="var(--fa-border-idle)" stroke-width="4" opacity="0.5"/>
+        <g transform="rotate(-90 50 50)">
+          <path id="fa-segment-1" class="fa-progress-segment" d="M 50 4 A 46 46 0 0 1 96 50" stroke="var(--fa-border-idle)" stroke-width="4" />
+          <path id="fa-segment-2" class="fa-progress-segment" d="M 96 50 A 46 46 0 0 1 50 96" stroke="var(--fa-border-idle)" stroke-width="4" />
+          <path id="fa-segment-3" class="fa-progress-segment" d="M 50 96 A 46 46 0 0 1 4 50" stroke="var(--fa-border-idle)" stroke-width="4" />
+          <path id="fa-segment-4" class="fa-progress-segment" d="M 4 50 A 46 46 0 0 1 50 4" stroke="var(--fa-border-idle)" stroke-width="4" />
+        </g>
       </svg>
     `;
-    return wrapper;
-  }
 
-  private buildBorder(side: "top" | "right" | "bottom" | "left"): HTMLDivElement {
-    const el = document.createElement("div");
-    el.className = `fa-border fa-border-${side}`;
-    return el;
+    const segments = {
+      "fa-segment-1": wrapper.querySelector<SVGPathElement>("#fa-segment-1")!,
+      "fa-segment-2": wrapper.querySelector<SVGPathElement>("#fa-segment-2")!,
+      "fa-segment-3": wrapper.querySelector<SVGPathElement>("#fa-segment-3")!,
+      "fa-segment-4": wrapper.querySelector<SVGPathElement>("#fa-segment-4")!,
+    };
+
+    return { progressRing: wrapper, segments };
   }
 }

@@ -22,7 +22,7 @@ export const FACEAUTH_STYLES = `
   --fa-text: #1a1a1a;
   --fa-text-secondary: #6b6b6b;
   --fa-border-idle: #e0e0e0;
-  --fa-border-active: #22c55e;
+  --fa-border-active: #3b82f6; /* Utiliser l'accent pour la progression */
   --fa-accent: #2563eb;
   --fa-danger: #ef4444;
   --fa-overlay-bg: rgba(0, 0, 0, 0.55);
@@ -34,7 +34,7 @@ export const FACEAUTH_STYLES = `
   --fa-text: #f4f4f5;
   --fa-text-secondary: #a1a1aa;
   --fa-border-idle: #3f3f46;
-  --fa-border-active: #4ade80;
+  --fa-border-active: #60a5fa;
   --fa-accent: #3b82f6;
   --fa-danger: #f87171;
   --fa-overlay-bg: rgba(0, 0, 0, 0.7);
@@ -160,20 +160,24 @@ export const FACEAUTH_STYLES = `
 .fa-camera-wrapper {
   position: relative;
   width: 100%;
+  max-width: 280px; /* Taille max pour le cercle */
   aspect-ratio: 1 / 1;
-  border-radius: 16px;
+  margin: 0 auto; /* Centrer le cercle */
+  border-radius: 50%;
   overflow: hidden;
   background: #000;
+  -webkit-mask-image: -webkit-radial-gradient(white, black); /* Force le cercle sur Safari */
 }
 
 .fa-video {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transform: scaleX(-1); /* Effet miroir, plus naturel pour l'utilisateur */
+  transform: scaleX(-1);
 }
 
-.fa-ghost-overlay {
+/* L'anneau de progression SVG remplace les anciennes bordures et le ghost overlay */
+.fa-progress-ring {
   position: absolute;
   inset: 0;
   pointer-events: none;
@@ -182,28 +186,20 @@ export const FACEAUTH_STYLES = `
   justify-content: center;
 }
 
-.fa-ghost-svg {
-  width: 60%;
-  height: 80%;
-  opacity: 0.35;
+.fa-progress-ring-circle {
+  transition: stroke-dashoffset 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform: rotate(-90deg);
+  transform-origin: 50% 50%;
 }
 
-/* Bordures progressives — une par geste, s'allument en vert au fur et à mesure */
-.fa-border {
-  position: absolute;
-  background: var(--fa-border-idle);
-  transition: background 200ms ease, box-shadow 200ms ease;
+.fa-progress-segment {
+  transition: stroke 0.3s ease-in-out;
 }
 
-.fa-border.fa-active {
-  background: var(--fa-border-active);
-  box-shadow: 0 0 12px var(--fa-border-active);
+.fa-progress-segment.fa-active {
+  stroke: var(--fa-border-active);
+  filter: drop-shadow(0 0 4px var(--fa-border-active));
 }
-
-.fa-border-top    { top: 0; left: 0; right: 0; height: 5px; }
-.fa-border-right  { top: 0; right: 0; bottom: 0; width: 5px; }
-.fa-border-bottom { bottom: 0; left: 0; right: 0; height: 5px; }
-.fa-border-left   { top: 0; left: 0; bottom: 0; width: 5px; }
 
 /* ============================================================
    Message d'erreur sous le scan
@@ -243,9 +239,23 @@ export const FACEAUTH_STYLES = `
 }
 
 .fa-status-icon {
-  font-size: 40px;
-  line-height: 1;
+  width: 56px;
+  height: 56px;
 }
+
+/* Animation pour les icônes de succès/échec */
+.fa-status-icon .fa-icon-path {
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  animation: fa-draw-icon 0.7s ease-out forwards;
+}
+
+@keyframes fa-draw-icon {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
 
 .fa-status-title {
   font-size: 16px;

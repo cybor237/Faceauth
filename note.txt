@@ -1,0 +1,7 @@
+faceauth
+neon.tech 
+connection string = postgresql://neondb_owner:npg_8B4AnrdZOvMl@ep-young-lab-atssosl0-pooler.c-9.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+
+upstash.com (redis)
+DATABASE_URL=postgresql://...
+REDIS_URL=rediss://default:gQAAAAAAAkz7AAIgcDI4Mzc3MDViM2M2M2E0YWVhODExZjFmMzJkYzQxOTViMg@faisable-crapaud-150779.upstash.io:6379
