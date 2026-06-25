@@ -16,3 +16,12 @@ dashboard/dist/
 .DS_Store
 Thumbs.db
 EOF
+
+#dashboard
+dashboard/.env
+dashboard/.env.example
+
+
+#others
+note.txt
+firebaseconfig.txt

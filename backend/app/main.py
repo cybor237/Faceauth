@@ -24,6 +24,7 @@ from app.config import settings
 from app.database import init_db
 from app.services.biometric import BiometricService
 from app.routers import challenge, enroll, verify, health
+from app.routers import dashboard
 
 # -------------------------------------------------------------------
 # Logging
@@ -124,3 +125,4 @@ app.include_router(health.router, tags=["Santé"])
 app.include_router(challenge.router, prefix="/challenge", tags=["Challenge"])
 app.include_router(enroll.router, prefix="/enroll", tags=["Enrôlement"])
 app.include_router(verify.router, prefix="/verify", tags=["Vérification"])
+app.include_router(dashboard.router, prefix="/dashboard", tags=["Dashboard"])
