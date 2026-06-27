@@ -6,9 +6,11 @@ import json
 class Settings(BaseSettings):
     # Base de données
     DATABASE_URL: str
-
+    #google services
+    GOOGLE_APPLICATION_CREDENTIALS: str 
     # Redis
     REDIS_URL: str = "redis://localhost:6379"
+    
 
     # JWT / Challenge tokens
     JWT_SECRET_KEY: str
