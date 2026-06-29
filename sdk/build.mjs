@@ -1,10 +1,8 @@
 /**
  * Build du SDK FaceAuth avec esbuild.
- * Produit deux bundles :
- *   - dist/faceauth.js      (IIFE — utilisable via <script> classique)
- *   - dist/faceauth.esm.js  (ESM — utilisable via import)
- * Les déclarations TypeScript (.d.ts) sont générées séparément via `tsc`.
  */
+import { cpSync, mkdirSync, existsSync } from "node:fs";
+import { join } from "node:path";
 import * as esbuild from "esbuild";
 import { execSync } from "node:child_process";
 
@@ -20,7 +18,6 @@ const sharedConfig = {
 };
 
 async function build() {
-  // Bundle IIFE — pour <script src="...">
   const iifeCtx = await esbuild.context({
     ...sharedConfig,
     format: "iife",
@@ -28,7 +25,6 @@ async function build() {
     outfile: "dist/faceauth.js",
   });
 
-  // Bundle ESM — pour import { FaceAuth } from '@faceauth/sdk'
   const esmCtx = await esbuild.context({
     ...sharedConfig,
     format: "esm",
@@ -47,12 +43,20 @@ async function build() {
 
     console.log("✅  Bundles JS générés (dist/faceauth.js, dist/faceauth.esm.js)");
 
-    // Génération des types .d.ts via tsc
     try {
       execSync("npx tsc --emitDeclarationOnly", { stdio: "inherit" });
       console.log("✅  Déclarations TypeScript générées (dist/*.d.ts)");
     } catch (e) {
       console.error("⚠️  Erreur lors de la génération des types :", e.message);
+    }
+
+    // Copier les sons dans examples/vanilla/sounds/ — servis par FastAPI via /sounds
+    const soundsSrc  = join("src", "ui", "sounds");
+    const soundsDemo = join("examples", "vanilla", "sounds");
+    if (existsSync(soundsSrc)) {
+      mkdirSync(soundsDemo, { recursive: true });
+      cpSync(soundsSrc, soundsDemo, { recursive: true });
+      console.log("✅  Sons copiés dans examples/vanilla/sounds/");
     }
   }
 }

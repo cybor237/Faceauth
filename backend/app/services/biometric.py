@@ -81,6 +81,7 @@ class BiometricService:
                 model_name=settings.DEEPFACE_MODEL,
                 enforce_detection=False,
                 detector_backend="opencv",
+                align=True,
             )
 
             if not result:

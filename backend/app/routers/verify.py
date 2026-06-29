@@ -125,6 +125,10 @@ async def verify(
         # 6. Calcul de la similarité cosinus et décision
         # ---------------------------------------------------------
         similarity = BiometricService.compute_cosine_similarity(submitted_embedding, ref_embedding)
+        # Sanity check — confidence=1.0 exact entre deux sessions différentes
+        # est anormal et indique un problème de capture
+        if similarity >= 0.9999:
+            similarity = 0.0  # Force le rejet
         match = similarity >= settings.SIMILARITY_THRESHOLD
 
         # ---------------------------------------------------------

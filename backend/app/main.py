@@ -93,7 +93,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["GET", "POST"],
+    allow_methods=["GET", "POST","PATCH", "DELETE"],
     allow_headers=["Authorization", "Content-Type"],
 )
 
@@ -104,6 +104,13 @@ DEMO_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "sdk", "examples"
 if os.path.isdir(DEMO_DIR):
     app.mount("/demo", StaticFiles(directory=DEMO_DIR, html=True), name="demo")
     logger.info(f"📂  Démo SDK montée sur /demo (dossier : {DEMO_DIR})")
+
+
+# Sons SDK
+SOUNDS_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "sdk", "examples", "vanilla", "sounds")
+if os.path.isdir(SOUNDS_DIR):
+    app.mount("/sounds", StaticFiles(directory=SOUNDS_DIR), name="sounds")
+    logger.info(f"🔊  Sons montés sur /sounds")
 
 # -------------------------------------------------------------------
 # Gestion globale des erreurs
