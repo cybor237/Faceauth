@@ -78,8 +78,13 @@
   </div>
 
   <div class="field">
+    <label>URL API FaceAuth</label>
+    <input id="apiBaseUrl" type="url" value="http://localhost:8000" placeholder="http://localhost:8000 ou votre URL Railway/Cloudflare" />
+  </div>
+
+  <div class="field">
     <label>ID utilisateur final</label>
-    <input id="endUserId" type="text" value="demo_user_001" />
+    <input id="endUserId" type="text" value="demo_user_001" placeholder="demo_user_001" />
   </div>
 
   <div class="buttons">
@@ -92,6 +97,15 @@
   <script src="../../dist/faceauth.js"></script>
 <script>
   const resultEl = document.getElementById("result");
+
+  const apiBaseUrlEl = document.getElementById("apiBaseUrl");
+
+  // Si la démo est servie depuis une URL publique HTTPS (Cloudflare/Railway),
+  // localhost désigne le navigateur de l'utilisateur, pas votre machine.
+  // Dans ce cas, on pré-remplit avec l'origine courante pour éviter le mixed-content.
+  if (location.protocol === "https:" && location.hostname !== "localhost") {
+    apiBaseUrlEl.value = location.origin;
+  }
 
   function showResult(result) {
     resultEl.classList.add("show");
@@ -114,10 +128,18 @@
       showRawError("Le SDK ne s'est pas chargé (faceauth.js introuvable ou erreur de build)");
       return null;
     }
+    const apiBaseUrl = apiBaseUrlEl.value.trim().replace(/\/$/, "");
+    if (!apiBaseUrl) {
+      showRawError("Champ URL API vide — indiquez http://localhost:8000 ou votre URL publique");
+      return null;
+    }
     return new FaceAuth.FaceAuth({
       apiKey,
-      apiBaseUrl: "",
+      apiBaseUrl,
       theme: "auto",
+      locale: "fr",
+      assetsBaseUrl: apiBaseUrl,
+      enableSound: true,
     });
   }
 

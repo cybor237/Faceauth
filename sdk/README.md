@@ -47,6 +47,7 @@ Puis ouvrez `http://localhost:5500`, collez une clé API générée depuis votre
   const faceauth = new FaceAuth.FaceAuth({
     apiKey: "sk_live_xxxxxxxxxxxx",
     apiBaseUrl: "https://api.faceauth.dev", // ou votre URL Railway
+    assetsBaseUrl: "https://api.faceauth.dev", // optionnel : sons SDK auto-hébergés
   });
 
   async function verifyUser() {
@@ -70,6 +71,8 @@ const faceauth = new FaceAuth({
   apiKey: process.env.NEXT_PUBLIC_FACEAUTH_KEY!,
   apiBaseUrl: "https://api.faceauth.dev",
   theme: "auto", // 'light' | 'dark' | 'auto'
+  locale: "fr", // 'fr' | 'en'
+  enableSound: true,
 });
 
 async function handleSignup(userId: string) {
@@ -89,6 +92,9 @@ async function handleSignup(userId: string) {
 | `apiKey` | `string` | ✅ | Clé API publique du développeur |
 | `apiBaseUrl` | `string` | ❌ | URL du backend (par défaut : production) |
 | `theme` | `'light' \| 'dark' \| 'auto'` | ❌ | Thème du module (défaut : `auto`) |
+| `locale` | `'fr' \| 'en'` | ❌ | Langue des textes UI (défaut : `fr`) |
+| `assetsBaseUrl` | `string` | ❌ | URL publique servant `/sounds/success.mp3` et `/sounds/error.mp3` |
+| `enableSound` | `boolean` | ❌ | Active/désactive les sons de feedback (défaut : `true`) |
 
 ### `faceauth.enroll({ endUserId, container? })`
 

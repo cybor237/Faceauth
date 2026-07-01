@@ -18,24 +18,26 @@ export const FACEAUTH_STYLES = `
    THÈME — variables CSS, claires par défaut, sombres via [data-theme]
    ============================================================ */
 .fa-root {
-  --fa-bg: #ffffff;
+  --fa-bg: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
   --fa-text: #1a1a1a;
   --fa-text-secondary: #6b6b6b;
   --fa-border-idle: #e0e0e0;
   --fa-border-active: #3b82f6; /* Utiliser l'accent pour la progression */
   --fa-accent: #2563eb;
+  --fa-accent-soft: rgba(37, 99, 235, 0.12);
   --fa-danger: #ef4444;
   --fa-overlay-bg: rgba(0, 0, 0, 0.55);
   --fa-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
 }
 
 .fa-root[data-theme="dark"] {
-  --fa-bg: #18181b;
+  --fa-bg: linear-gradient(180deg, #18181b 0%, #09090b 100%);
   --fa-text: #f4f4f5;
   --fa-text-secondary: #a1a1aa;
   --fa-border-idle: #3f3f46;
   --fa-border-active: #60a5fa;
   --fa-accent: #3b82f6;
+  --fa-accent-soft: rgba(96, 165, 250, 0.16);
   --fa-danger: #f87171;
   --fa-overlay-bg: rgba(0, 0, 0, 0.7);
   --fa-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
@@ -67,6 +69,7 @@ export const FACEAUTH_STYLES = `
   background: var(--fa-bg);
   color: var(--fa-text);
   border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
   box-shadow: var(--fa-shadow);
   width: 420px;
   max-width: 92vw;
@@ -117,33 +120,67 @@ export const FACEAUTH_STYLES = `
    ============================================================ */
 .fa-header {
   display: flex;
-  justify-content: flex-end;
-  margin-bottom: 8px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.fa-brand-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--fa-accent);
+  background: var(--fa-accent-soft);
+  border-radius: 999px;
+  padding: 7px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.fa-brand-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--fa-accent);
+  box-shadow: 0 0 0 4px var(--fa-accent-soft);
 }
 
 .fa-cancel-btn {
-  background: transparent;
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(127, 127, 127, 0.10);
   border: none;
   color: var(--fa-text-secondary);
-  font-size: 14px;
   cursor: pointer;
-  padding: 6px 10px;
-  border-radius: 8px;
-  transition: background 150ms ease;
+  padding: 0;
+  border-radius: 999px;
+  transition: background 150ms ease, transform 150ms ease, color 150ms ease;
+}
+
+.fa-cancel-btn svg {
+  width: 18px;
+  height: 18px;
 }
 
 .fa-cancel-btn:hover {
-  background: var(--fa-border-idle);
+  background: var(--fa-danger);
+  color: white;
+  transform: scale(1.04);
 }
 
 /* ============================================================
    Titre / instructions
    ============================================================ */
 .fa-title {
-  font-size: 18px;
-  font-weight: 600;
-  margin: 0 0 4px;
+  font-size: 20px;
+  font-weight: 750;
+  margin: 0 0 6px;
   text-align: center;
+  letter-spacing: -0.02em;
 }
 
 .fa-subtitle {
@@ -165,7 +202,8 @@ export const FACEAUTH_STYLES = `
   margin: 0 auto; /* Centrer le cercle */
   border-radius: 50%;
   overflow: hidden;
-  background: #000;
+  background: radial-gradient(circle at center, #18181b 0%, #000 100%);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08), 0 18px 45px rgba(0,0,0,0.18);
   -webkit-mask-image: -webkit-radial-gradient(white, black); /* Force le cercle sur Safari */
 }
 
@@ -198,7 +236,7 @@ export const FACEAUTH_STYLES = `
 
 .fa-progress-segment.fa-active {
   stroke: var(--fa-border-active);
-  filter: drop-shadow(0 0 4px var(--fa-border-active));
+  filter: drop-shadow(0 0 7px var(--fa-border-active));
 }
 
 /* ============================================================
@@ -210,6 +248,26 @@ export const FACEAUTH_STYLES = `
   color: var(--fa-danger);
   margin-top: 12px;
   min-height: 18px;
+  line-height: 1.35;
+}
+
+.fa-footer-brand {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--fa-border-idle);
+  text-align: center;
+  color: var(--fa-text-secondary);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.fa-footer-brand span {
+  display: block;
+  margin-top: 3px;
+  color: var(--fa-accent);
+  font-weight: 700;
+  letter-spacing: 0.12em;
 }
 
 /* ============================================================

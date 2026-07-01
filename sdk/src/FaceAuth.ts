@@ -20,13 +20,21 @@ import type {
   FaceAuthActionOptions,
   GestureType,
   FaceAuthErrorCode,
+  LivenessAttestation,
+  LivenessGestureEvent,
 } from "./types";
 
 type ActionMode = "enroll" | "verify";
+const SDK_VERSION = "0.1.0";
+const MIN_GESTURE_STEP_MS = 600;
+const MIN_TOTAL_LIVENESS_MS = 1800;
 
 export class FaceAuth {
   private api: FaceAuthAPI;
   private theme: "light" | "dark" | "auto";
+  private locale: "fr" | "en";
+  private assetsBaseUrl?: string;
+  private enableSound: boolean;
 
   constructor(config: FaceAuthConfig) {
     if (!config.apiKey) {
@@ -34,6 +42,9 @@ export class FaceAuth {
     }
     this.api = new FaceAuthAPI(config.apiKey, config.apiBaseUrl);
     this.theme = config.theme ?? "auto";
+    this.locale = config.locale ?? "fr";
+    this.assetsBaseUrl = config.assetsBaseUrl;
+    this.enableSound = config.enableSound ?? true;
   }
 
   /** Enrôle un nouvel utilisateur — enregistre son visage de référence. */
@@ -90,6 +101,9 @@ export class FaceAuth {
         // 2. Construire le module UI
         // ------------------------------------------------------
         modal = new ScanModal(container, this.theme, {
+          locale: this.locale,
+          assetsBaseUrl: this.assetsBaseUrl,
+          enableSound: this.enableSound,
           onCancel: () => {
             modal?.close();
             finish({
@@ -135,6 +149,10 @@ export class FaceAuth {
         // ------------------------------------------------------
         const sequence: GestureType[] = challenge.gestures;
         let currentIndex = 0;
+        const flowStartedAt = new Date();
+        const flowStartedMs = performance.now();
+        let lastAcceptedMs = 0;
+        const livenessEvents: LivenessGestureEvent[] = [];
         modal.setInstruction(sequence[0]);
 
         const cameraView = modal.getCameraView();
@@ -145,8 +163,15 @@ export class FaceAuth {
             const expected = sequence[currentIndex];
             if (detectedGesture !== expected) return; // Ignore le geste hors séquence
 
+            const now = performance.now();
+            if (lastAcceptedMs > 0 && now - lastAcceptedMs < MIN_GESTURE_STEP_MS) {
+              return;
+            }
+
             modal?.markGestureComplete(expected);
             modal?.clearError();
+            livenessEvents.push({ gesture: expected, elapsed_ms: Math.round(now - flowStartedMs) });
+            lastAcceptedMs = now;
             currentIndex += 1;
 
             if (currentIndex < sequence.length) {
@@ -174,6 +199,26 @@ export class FaceAuth {
         const onAllGesturesComplete = async () => {
           if (settled) return;
           gestureEngine?.stop();
+          const completedAt = new Date();
+          const totalDurationMs = Math.round(performance.now() - flowStartedMs);
+          if (totalDurationMs < MIN_TOTAL_LIVENESS_MS || livenessEvents.length !== sequence.length) {
+            modal?.setError("Gestes validés trop rapidement — recommencez calmement");
+            currentIndex = 0;
+            lastAcceptedMs = 0;
+            livenessEvents.length = 0;
+            cameraView.resetBorders();
+            modal?.setInstruction(sequence[0]);
+            gestureEngine?.start();
+            return;
+          }
+           // 🔍 Quality Gate — vérification qualité avant envoi
+          const quality = gestureEngine?.runQualityGate();
+          if (quality && !quality.pass) {
+            modal?.setError(quality.message ?? "Photo de mauvaise qualité — réessayez");
+            // Relancer le scan
+            gestureEngine?.start();
+            return;
+          }
 
           modal?.showLoadingScreen(
             mode === "enroll" ? "Enregistrement en cours..." : "Vérification en cours..."
@@ -181,12 +226,23 @@ export class FaceAuth {
 
           try {
             const imageBlob = await cameraView.captureFrame();
+            const livenessAttestation: LivenessAttestation = {
+              sequence,
+              events: livenessEvents,
+              started_at: flowStartedAt.toISOString(),
+              completed_at: completedAt.toISOString(),
+              total_duration_ms: totalDurationMs,
+              min_step_duration_ms: MIN_GESTURE_STEP_MS,
+              sdk_version: SDK_VERSION,
+              user_agent: navigator.userAgent,
+            };
 
             if (mode === "enroll") {
               const res = await this.api.enroll({
                 endUserId: options.endUserId,
                 challengeToken: challenge.challenge_token,
                 imageBlob,
+                livenessAttestation,
               });
               modal?.showSuccessScreen("Visage enregistré avec succès", () => {
                 modal?.close();
@@ -202,6 +258,7 @@ export class FaceAuth {
                 endUserId: options.endUserId,
                 challengeToken: challenge.challenge_token,
                 imageBlob,
+                livenessAttestation,
               });
 
               if (res.match) {

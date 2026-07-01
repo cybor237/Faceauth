@@ -15,6 +15,10 @@ export interface FaceAuthConfig {
   theme?: "light" | "dark" | "auto";
   /** Langue des textes affichés dans le module de scan. */
   locale?: "fr" | "en";
+  /** URL publique optionnelle pour charger les assets SDK auto-hébergés. */
+  assetsBaseUrl?: string;
+  /** Active les sons de feedback. Défaut : true. */
+  enableSound?: boolean;
 }
 
 // ============================================================
@@ -74,6 +78,22 @@ export interface FaceAuthActionOptions {
   endUserId: string;
   /** Élément DOM dans lequel monter le module (par défaut : document.body) */
   container?: HTMLElement;
+}
+
+export interface LivenessGestureEvent {
+  gesture: GestureType;
+  elapsed_ms: number;
+}
+
+export interface LivenessAttestation {
+  sequence: GestureType[];
+  events: LivenessGestureEvent[];
+  started_at: string;
+  completed_at: string;
+  total_duration_ms: number;
+  min_step_duration_ms: number;
+  sdk_version: string;
+  user_agent: string;
 }
 
 // ============================================================

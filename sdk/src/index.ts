@@ -22,4 +22,6 @@ export type {
   FaceAuthErrorCode,
   FaceAuthActionOptions,
   GestureType,
+  LivenessAttestation,
+  LivenessGestureEvent,
 } from "./types";

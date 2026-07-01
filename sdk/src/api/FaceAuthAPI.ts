@@ -11,6 +11,7 @@ import type {
   EnrollAPIResponse,
   APIErrorResponse,
   FaceAuthErrorCode,
+  LivenessAttestation,
 } from "../types";
 
 const DEFAULT_API_BASE_URL = "https://api.faceauth.dev";
@@ -53,11 +54,15 @@ export class FaceAuthAPI {
     endUserId: string;
     challengeToken: string;
     imageBlob: Blob;
+    livenessAttestation?: LivenessAttestation;
   }): Promise<EnrollAPIResponse> {
     const formData = new FormData();
     formData.append("end_user_id", params.endUserId);
     formData.append("challenge_token", params.challengeToken);
     formData.append("image", params.imageBlob, "face.jpg");
+    if (params.livenessAttestation) {
+      formData.append("liveness_attestation", JSON.stringify(params.livenessAttestation));
+    }
 
     const res = await this.request("/enroll", {
       method: "POST",
@@ -74,11 +79,15 @@ export class FaceAuthAPI {
     endUserId: string;
     challengeToken: string;
     imageBlob: Blob;
+    livenessAttestation?: LivenessAttestation;
   }): Promise<VerifyAPIResponse> {
     const formData = new FormData();
     formData.append("end_user_id", params.endUserId);
     formData.append("challenge_token", params.challengeToken);
     formData.append("image", params.imageBlob, "face.jpg");
+    if (params.livenessAttestation) {
+      formData.append("liveness_attestation", JSON.stringify(params.livenessAttestation));
+    }
 
     const res = await this.request("/verify", {
       method: "POST",
@@ -104,7 +113,7 @@ export class FaceAuthAPI {
     } catch (err) {
       throw new FaceAuthAPIError(
         "NETWORK_ERROR",
-        "Impossible de contacter le serveur FaceAuth. Vérifiez votre connexion."
+        `Impossible de contacter le serveur FaceAuth (${this.baseUrl}). Vérifiez l'URL API, CORS et HTTPS/localhost.`
       );
     }
 

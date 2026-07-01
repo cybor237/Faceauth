@@ -15,6 +15,7 @@ Flux :
 
 import asyncio
 import logging
+import json
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -42,6 +43,7 @@ async def verify(
     request: Request,
     end_user_id: str = Form(..., min_length=1, max_length=255),
     challenge_token: str = Form(...),
+    liveness_attestation: str | None = Form(None),
     image: UploadFile = File(...),
     api_key: APIKey = Depends(get_api_key),
     db: AsyncSession = Depends(get_db),
@@ -61,6 +63,31 @@ async def verify(
                                 detail={"error_code": "INVALID_TOKEN", "message": str(e)})
 
         session_id = token_payload["sub"]
+        expected_gestures = token_payload.get("gestures", [])
+
+        # ---------------------------------------------------------
+        # 1b. Valider l'attestation liveness légère du SDK
+        # ---------------------------------------------------------
+        if settings.REQUIRE_LIVENESS_ATTESTATION and not liveness_attestation:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                                detail={"error_code": "INVALID_TOKEN", "message": "Attestation liveness manquante"})
+
+        if liveness_attestation:
+            try:
+                attestation = json.loads(liveness_attestation)
+                events = attestation.get("events", [])
+                sequence = attestation.get("sequence", [])
+                total_ms = int(attestation.get("total_duration_ms", 0))
+                elapsed = [int(e.get("elapsed_ms", 0)) for e in events]
+                if sequence != expected_gestures or [e.get("gesture") for e in events] != expected_gestures:
+                    raise ValueError("Séquence de gestes incohérente")
+                if total_ms < settings.MIN_LIVENESS_TOTAL_MS:
+                    raise ValueError("Défi gestuel complété trop rapidement")
+                if any((b - a) < settings.MIN_LIVENESS_STEP_MS for a, b in zip(elapsed, elapsed[1:])):
+                    raise ValueError("Gestes trop rapprochés")
+            except Exception as e:
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                                    detail={"error_code": "INVALID_TOKEN", "message": f"Attestation liveness invalide : {e}"})
 
         # ---------------------------------------------------------
         # 2. Vérifier l'anti-replay
@@ -125,10 +152,6 @@ async def verify(
         # 6. Calcul de la similarité cosinus et décision
         # ---------------------------------------------------------
         similarity = BiometricService.compute_cosine_similarity(submitted_embedding, ref_embedding)
-        # Sanity check — confidence=1.0 exact entre deux sessions différentes
-        # est anormal et indique un problème de capture
-        if similarity >= 0.9999:
-            similarity = 0.0  # Force le rejet
         match = similarity >= settings.SIMILARITY_THRESHOLD
 
         # ---------------------------------------------------------

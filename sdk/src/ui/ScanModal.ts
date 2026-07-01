@@ -14,6 +14,13 @@ const GESTURE_LABELS_FR: Record<GestureType, string> = {
   head_right: "Tournez la tête vers la droite",
 };
 
+const GESTURE_LABELS_EN: Record<GestureType, string> = {
+  blink:      "Blink your eyes",
+  mouth:      "Open your mouth",
+  head_left:  "Turn your head left",
+  head_right: "Turn your head right",
+};
+
 // ----------------------------------------------------------------
 // AudioService — chargement et lecture des sons de feedback
 // ----------------------------------------------------------------
@@ -42,10 +49,10 @@ class AudioService {
     }
   }
 
-  static play(name: string, volume = 1.0): void {
+  static play(name: string, volume = 1.0): boolean {
     try {
       const buffer = this.cache[name];
-      if (!buffer) return;
+      if (!buffer) return false;
       const ctx = this.getContext();
       if (ctx.state === "suspended") ctx.resume();
       const source   = ctx.createBufferSource();
@@ -55,6 +62,32 @@ class AudioService {
       source.connect(gainNode);
       gainNode.connect(ctx.destination);
       source.start(0);
+      return true;
+    } catch {
+      // Échec silencieux
+      return false;
+    }
+  }
+
+  static playTone(kind: "success" | "error", volume = 0.35): void {
+    try {
+      const ctx = this.getContext();
+      if (ctx.state === "suspended") void ctx.resume();
+      const now = ctx.currentTime;
+      const freqs = kind === "success" ? [660, 880] : [220, 165];
+      freqs.forEach((freq, index) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.0001, now + index * 0.12);
+        gain.gain.exponentialRampToValueAtTime(volume, now + index * 0.12 + 0.015);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + index * 0.12 + 0.11);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now + index * 0.12);
+        osc.stop(now + index * 0.12 + 0.13);
+      });
     } catch {
       // Échec silencieux
     }
@@ -62,6 +95,9 @@ class AudioService {
 }
 
 export type ScanModalEvents = {
+  locale?: "fr" | "en";
+  assetsBaseUrl?: string;
+  enableSound?: boolean;
   onCancel: () => void;
   onReady:  (cameraView: CameraView) => void;
 };
@@ -86,8 +122,9 @@ export class ScanModal {
     this.shadowRoot  = this.hostElement.attachShadow({ mode: "open" });
     this.cameraView  = new CameraView();
 
-    // Précharger les sons dès l'ouverture du module
-    this.preloadSounds();
+    if (this.events.enableSound ?? true) {
+      this.preloadSounds();
+    }
 
     this.buildDOM();
     this.container.appendChild(this.hostElement);
@@ -99,9 +136,10 @@ export class ScanModal {
   // Préchargement des sons depuis /sounds/ (servi par FastAPI)
   // ----------------------------------------------------------------
   private preloadSounds(): void {
-    const origin = window.location.origin;
-    AudioService.preload("success", `${origin}/sounds/success.mp3`);
-    AudioService.preload("error",   `${origin}/sounds/error.mp3`);
+    if (!this.events.assetsBaseUrl) return;
+    const baseUrl = this.events.assetsBaseUrl.replace(/\/$/, "");
+    AudioService.preload("success", `${baseUrl}/sounds/success.mp3`);
+    AudioService.preload("error",   `${baseUrl}/sounds/error.mp3`);
   }
 
   // ----------------------------------------------------------------
@@ -121,11 +159,19 @@ export class ScanModal {
 
     const header    = document.createElement("div");
     header.className = "fa-header";
+    const brand = document.createElement("div");
+    brand.className = "fa-brand-pill";
+    brand.innerHTML = `<span class="fa-brand-dot"></span><span>FaceAuth</span>`;
     const cancelBtn = document.createElement("button");
     cancelBtn.className   = "fa-cancel-btn";
-    cancelBtn.textContent = "Annuler";
+    cancelBtn.setAttribute("aria-label", "Annuler");
+    cancelBtn.innerHTML = `
+      <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+        <path d="M6 6l12 12M18 6L6 18" />
+      </svg>
+    `;
     cancelBtn.addEventListener("click", () => this.events.onCancel());
-    header.appendChild(cancelBtn);
+    header.append(brand, cancelBtn);
 
     const title = document.createElement("h2");
     title.className   = "fa-title";
@@ -142,7 +188,11 @@ export class ScanModal {
     this.errorEl = document.createElement("div");
     this.errorEl.className = "fa-error-message";
 
-    this.panel.append(header, title, this.subtitleEl, this.bodyContainer, this.errorEl);
+    const footer = document.createElement("div");
+    footer.className = "fa-footer-brand";
+    footer.innerHTML = `FaceAuth <span>Biometric as a Service</span>`;
+
+    this.panel.append(header, title, this.subtitleEl, this.bodyContainer, this.errorEl, footer);
     this.overlay.appendChild(this.panel);
     this.shadowRoot.appendChild(this.overlay);
 
@@ -170,7 +220,8 @@ export class ScanModal {
   getCameraView(): CameraView { return this.cameraView; }
 
   setInstruction(gesture: GestureType): void {
-    this.subtitleEl.textContent = GESTURE_LABELS_FR[gesture];
+    const labels = this.events.locale === "en" ? GESTURE_LABELS_EN : GESTURE_LABELS_FR;
+    this.subtitleEl.textContent = labels[gesture];
   }
 
   setError(message: string): void   { this.errorEl.textContent = message; }
@@ -196,8 +247,11 @@ export class ScanModal {
   }
 
   showSuccessScreen(message: string, onDone: () => void): void {
-    // 🔊 Son de succès
-    setTimeout(() => AudioService.play("success", 0.8), 100);
+    if (this.events.enableSound ?? true) {
+      setTimeout(() => {
+        if (!AudioService.play("success", 0.8)) AudioService.playTone("success");
+      }, 100);
+    }
 
     this.bodyContainer.innerHTML = `
       <div class="fa-status-screen">
@@ -217,8 +271,11 @@ export class ScanModal {
   }
 
   showErrorScreen(message: string, onDone: () => void): void {
-    // 🔊 Son d'échec
-    setTimeout(() => AudioService.play("error", 0.7), 100);
+    if (this.events.enableSound ?? true) {
+      setTimeout(() => {
+        if (!AudioService.play("error", 0.7)) AudioService.playTone("error");
+      }, 100);
+    }
 
     this.bodyContainer.innerHTML = `
       <div class="fa-status-screen">

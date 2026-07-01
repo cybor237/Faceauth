@@ -15,6 +15,7 @@ Flux :
 
 import asyncio
 import logging
+import json
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -30,6 +31,7 @@ from app.services.biometric import BiometricService
 from app.services.token import TokenService
 from app.services.cache import CacheService
 from app.schemas.challenge import EnrollResponse
+from app.config import settings
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -42,6 +44,7 @@ async def enroll(
     request: Request,
     end_user_id: str = Form(..., min_length=1, max_length=255),
     challenge_token: str = Form(...),
+    liveness_attestation: str | None = Form(None),
     image: UploadFile = File(..., description="Image JPEG/PNG du visage (224x224 recommandé)"),
     api_key: APIKey = Depends(get_api_key),
     db: AsyncSession = Depends(get_db),
@@ -61,6 +64,31 @@ async def enroll(
                                 detail={"error_code": "INVALID_TOKEN", "message": str(e)})
 
         session_id = token_payload["sub"]
+        expected_gestures = token_payload.get("gestures", [])
+
+        # ---------------------------------------------------------
+        # 1b. Valider l'attestation liveness légère du SDK
+        # ---------------------------------------------------------
+        if settings.REQUIRE_LIVENESS_ATTESTATION and not liveness_attestation:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                                detail={"error_code": "INVALID_TOKEN", "message": "Attestation liveness manquante"})
+
+        if liveness_attestation:
+            try:
+                attestation = json.loads(liveness_attestation)
+                events = attestation.get("events", [])
+                sequence = attestation.get("sequence", [])
+                total_ms = int(attestation.get("total_duration_ms", 0))
+                elapsed = [int(e.get("elapsed_ms", 0)) for e in events]
+                if sequence != expected_gestures or [e.get("gesture") for e in events] != expected_gestures:
+                    raise ValueError("Séquence de gestes incohérente")
+                if total_ms < settings.MIN_LIVENESS_TOTAL_MS:
+                    raise ValueError("Défi gestuel complété trop rapidement")
+                if any((b - a) < settings.MIN_LIVENESS_STEP_MS for a, b in zip(elapsed, elapsed[1:])):
+                    raise ValueError("Gestes trop rapprochés")
+            except Exception as e:
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                                    detail={"error_code": "INVALID_TOKEN", "message": f"Attestation liveness invalide : {e}"})
 
         # ---------------------------------------------------------
         # 2. Vérifier l'anti-replay via Redis
